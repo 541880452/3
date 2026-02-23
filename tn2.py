@@ -101,7 +101,7 @@ def process_event(choice):
         st.write("给我200阳光，我给你400阳光")
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("同意"):
+            if st.button("同意", key=f"event7_yes_{random.random()}"):
                 if st.session_state.h == 1:
                     st.session_state.o += 200
                 else:
@@ -109,7 +109,7 @@ def process_event(choice):
                     st.session_state.o = max(0, st.session_state.o - 200)
                 st.rerun()
         with col2:
-            if st.button("拒绝"):
+            if st.button("拒绝", key=f"event7_no_{random.random()}"):
                 if st.session_state.h in [1,2,3]:
                     pass
                 else:
@@ -135,64 +135,53 @@ st.title("植物大战僵尸")
 if st.session_state.stage == "menu":
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("按下t键开始游戏"):
+        if st.button("按下t键开始游戏", key="menu_start"):
             st.session_state.stage = "difficulty"
             st.rerun()
     with col2:
-        if st.button("杨文靖是~~"):
-            st.session_state.stage = "dev"
-            st.rerun()
+        dev_input = st.text_input("输入开发者密钥", key="dev_key_input", type="password")
+        if dev_input:
+            if dev_input == "杨文靖是~~":
+                st.session_state.stage = "dev"
+                st.rerun()
     with col3:
-        if st.button("真怂呀你"):
+        if st.button("退出", key="menu_exit"):
             st.session_state.stage = "exit"
             st.rerun()
 
 elif st.session_state.stage == "dev":
     st.subheader("开发者模式")
-    st.write("请输入密钥：")
-    key_input = st.text_input("密钥", key="dev_key", type="password")
-    if st.button("验证"):
-        if st.session_state.l in key_input:
-            st.session_state.dev_mode = True
-            st.success("密码正确，已进入开发者模式")
-            st.write("给出二进制代码:11100100 10111101 10100000 11101000 10100010 10101011 11101001 10101010 10010111 11100100 10111010 10000110 11101111 10111100 10001100 11100110 10110000 10010100 11100110 10101101 10111011 11100100 10111101 10100000")
-        else:
-            st.error("密码错误")
-    if st.session_state.dev_mode:
-        st.write("---")
-        st.write("钉钉机器人发送")
-        webhook = st.text_input("Webhook地址", value=st.session_state.dev_webhook)
-        message = st.text_area("请输入需要发送的消息")
-        at_all = st.checkbox("@所有人")
-        count = st.number_input("循环发送？输入次数(1-20)", min_value=1, max_value=20, value=1)
-        if st.button("发送"):
-            for i in range(int(count)):
-                result = send_dingtalk(webhook, message, at_all)
-                st.write(f"发送结果：{result}")
-                time.sleep(1)
-            st.success("发送完成")
-        if st.button("返回主菜单"):
-            st.session_state.stage = "menu"
-            st.rerun()
-    else:
-        if st.button("返回"):
-            st.session_state.stage = "menu"
-            st.rerun()
+    st.success("密码正确，已进入开发者模式")
+    st.write("---")
+    st.write("钉钉机器人发送")
+    message = st.text_area("请输入需要发送的消息", key="dev_message")
+    at_all = st.checkbox("@所有人", key="dev_atall")
+    count = st.number_input("循环发送？输入次数(1-20)", min_value=1, max_value=20, value=1, key="dev_count")
+    if st.button("发送", key="dev_send"):
+        full_message = "[皇上诏曰]:" + message
+        for i in range(int(count)):
+            result = send_dingtalk(st.session_state.dev_webhook, full_message, at_all)
+            st.write(f"发送结果：{result}")
+            time.sleep(1)
+        st.success("发送完成")
+    if st.button("返回主菜单", key="dev_back"):
+        st.session_state.stage = "menu"
+        st.rerun()
 
 elif st.session_state.stage == "exit":
     st.warning("真怂呀你")
-    if st.button("重新进入"):
+    if st.button("重新进入", key="exit_restart"):
         st.session_state.stage = "menu"
         st.rerun()
 
 elif st.session_state.stage == "difficulty":
     st.subheader("请选择难度")
-    difficulty = st.selectbox("难度", ["1.宝宝", "2.简单", "3.普通", "4.困难", "5.噩梦"])
-    if st.button("确认"):
+    difficulty = st.selectbox("难度", ["1.宝宝", "2.简单", "3.普通", "4.困难", "5.噩梦"], key="difficulty_select")
+    if st.button("确认", key="difficulty_confirm"):
         diff_num = difficulty[0]
         start_game(diff_num)
         st.rerun()
-    if st.button("返回"):
+    if st.button("返回", key="difficulty_back"):
         st.session_state.stage = "menu"
         st.rerun()
 
@@ -208,27 +197,27 @@ elif st.session_state.stage == "game":
         st.write("是否鞭尸？")
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("t"):
+            if st.button("t", key="gameover_t"):
                 st.write("哎呦喂\n" * 20)
                 st.write("我错了,饶了我吧:")
                 col3, col4 = st.columns(2)
                 with col3:
-                    if st.button("t"):
+                    if st.button("t", key="gameover_t_t"):
                         st.write("我错哪了我错了,我一点都没错")
                 with col4:
-                    if st.button("f"):
+                    if st.button("f", key="gameover_t_f"):
                         st.write("哎呦喂" * 100)
         with col2:
-            if st.button("f"):
+            if st.button("f", key="gameover_f"):
                 st.write(st.session_state.bye_text)
         st.write("冷知识，输入a重开游戏,其他任意键退出")
         col5, col6 = st.columns(2)
         with col5:
-            if st.button("a"):
+            if st.button("a", key="gameover_a"):
                 st.session_state.stage = "difficulty"
                 st.rerun()
         with col6:
-            if st.button("其他"):
+            if st.button("其他", key="gameover_other"):
                 st.write("我跑路了")
                 st.session_state.stage = "exit"
                 st.rerun()
@@ -238,14 +227,15 @@ elif st.session_state.stage == "game":
     with col1:
         st.metric("阳光", int(st.session_state.o))
     with col2:
-        st.metric("植物", int(st.session_state.q) if st.session_state.q.is_integer() else st.session_state.q)
+        val = st.session_state.q
+        st.metric("植物", int(val) if val.is_integer() else val)
     with col3:
         st.metric("僵尸", int(st.session_state.t))
     with col4:
         st.metric("锤子", st.session_state.c)
 
     st.write("---")
-    if st.button("下一回合"):
+    if st.button("下一回合", key="game_next"):
         st.session_state.o += 50
         if st.session_state.h in [1,2,3]:
             st.session_state.t += 1
@@ -255,7 +245,7 @@ elif st.session_state.stage == "game":
         event = random.randint(0, 7)
         if event == 6:
             st.write("给我100阳光，我帮你铲几个植物")
-            if st.button("同意"):
+            if st.button("同意", key="event6_yes"):
                 if st.session_state.o >= 100:
                     st.session_state.o -= 100
                     st.session_state.q = max(0, st.session_state.q - 1)
@@ -267,7 +257,7 @@ elif st.session_state.stage == "game":
             st.write("给我200阳光，我给你400阳光")
             col_a, col_b = st.columns(2)
             with col_a:
-                if st.button("同意"):
+                if st.button("同意", key="event7_yes"):
                     if st.session_state.h == 1:
                         st.session_state.o += 200
                     else:
@@ -275,7 +265,7 @@ elif st.session_state.stage == "game":
                         st.session_state.o = max(0, st.session_state.o - 200)
                     st.rerun()
             with col_b:
-                if st.button("拒绝"):
+                if st.button("拒绝", key="event7_no"):
                     if st.session_state.h not in [1,2,3]:
                         st.write("由不得你，你被骗了")
                         st.session_state.o = max(0, st.session_state.o - 200)
@@ -292,18 +282,18 @@ elif st.session_state.stage == "game":
 
     if st.session_state.o >= 100:
         st.write("你当前有 100 个阳光")
-        if st.button("种植植物"):
+        if st.button("种植植物", key="game_plant"):
             st.session_state.o -= 100
             st.session_state.q += 1
             st.rerun()
 
     if st.session_state.c > 0:
         st.write("你现在还剩", st.session_state.c, "个锤子")
-        if st.button("使用锤子"):
+        if st.button("使用锤子", key="game_hammer"):
             st.session_state.c -= 1
             st.success("哎呦喂")
             st.rerun()
 
-    if st.button("返回主菜单"):
+    if st.button("返回主菜单", key="game_back"):
         st.session_state.stage = "menu"
         st.rerun()
