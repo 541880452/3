@@ -139,11 +139,10 @@ if st.session_state.stage == "menu":
             st.session_state.stage = "difficulty"
             st.rerun()
     with col2:
-        dev_input = st.text_input("输入开发者密钥", key="dev_key_input", type="password")
-        if dev_input:
-            if dev_input == "杨文靖是~~":
-                st.session_state.stage = "dev"
-                st.rerun()
+        dev_input = st.text_input("", key="dev_key_input", type="password", label_visibility="collapsed")
+        if dev_input == "114514":
+            st.session_state.stage = "dev"
+            st.rerun()
     with col3:
         if st.button("退出", key="menu_exit"):
             st.session_state.stage = "exit"
