@@ -34,7 +34,8 @@ if "stage" not in st.session_state:
     st.session_state.bye_text = "跑路了兄弟们跑路了，跑就完了，慢点都得cos臊子"
     st.session_state.round_event = None
     st.session_state.round_step = None
-    st.session_state.event_choice_6_7 = None
+    st.session_state.event_choice = None
+    st.session_state.event_choice_made = False
 
 def send_dingtalk(webhook, message, at_all):
     headers = {'Content-Type': 'application/json;charset=utf-8'}
@@ -56,31 +57,13 @@ def start_game(difficulty):
         st.session_state.win = False
         st.session_state.round_event = None
         st.session_state.round_step = None
-        st.session_state.event_choice_6_7 = None
+        st.session_state.event_choice = None
+        st.session_state.event_choice_made = False
         st.session_state.stage = "game"
     else:
         st.error(st.session_state.bad_read)
 
-def describe_event(choice):
-    if choice == 0:
-        st.write("头牛：我帮你种个僵尸")
-    elif choice == 1:
-        st.write("头牛：我帮你铲个植物")
-    elif choice == 2:
-        st.write("头牛：我帮你给一个植物扣血")
-    elif choice == 3:
-        st.write("头牛：我给僵尸加点血")
-    elif choice == 4:
-        st.write("头牛：我帮你种个植物")
-    elif choice == 5:
-        st.write("头牛：我多帮你种几个")
-    elif choice == 6:
-        st.write("头牛：给我100阳光，我帮你铲几个植物")
-    elif choice == 7:
-        st.write("头羊：你好呀，我是头牛的弟弟头羊，今天我来指导你")
-        st.write("头羊：给我200阳光，我给你400阳光")
-
-def apply_event(choice, use_hammer=False):
+def apply_event(choice, use_hammer):
     if use_hammer:
         st.success("哎呦喂")
         return
@@ -116,17 +99,19 @@ def apply_event(choice, use_hammer=False):
         else:
             st.session_state.t += 1
     elif choice == 6:
-        if st.session_state.o >= 100:
-            st.session_state.o -= 100
-            st.session_state.q = max(0, st.session_state.q - 1)
-        else:
-            st.warning("阳光不足")
+        if st.session_state.event_choice == "yes":
+            if st.session_state.o >= 100:
+                st.session_state.o -= 100
+                st.session_state.q = max(0, st.session_state.q - 1)
+            else:
+                st.warning("阳光不足")
     elif choice == 7:
-        if st.session_state.h == 1:
-            st.session_state.o += 200
-        else:
-            st.write("你被骗了")
-            st.session_state.o = max(0, st.session_state.o - 200)
+        if st.session_state.event_choice == "yes":
+            if st.session_state.h == 1:
+                st.session_state.o += 200
+            else:
+                st.write("你被骗了")
+                st.session_state.o = max(0, st.session_state.o - 200)
 
 def check_win_loss():
     h = st.session_state.h
@@ -168,7 +153,6 @@ elif st.session_state.stage == "dev":
     st.subheader("开发者模式")
     st.success("密码正确，已进入开发者模式")
     st.write("---")
-    st.write("钉钉机器人发送")
     message = st.text_area("请输入需要发送的消息", key="dev_message")
     at_all = st.checkbox("@所有人", key="dev_atall")
     count = st.number_input("循环发送？输入次数(1-20)", min_value=1, max_value=20, value=1, key="dev_count")
@@ -212,7 +196,7 @@ elif st.session_state.stage == "game":
         st.write("是否鞭尸？")
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("是", key="gameover_t"):
+            if st.button("t", key="gameover_t"):
                 st.write("哎呦喂\n" * 20)
                 st.write("我错了,饶了我吧:")
                 col3, col4 = st.columns(2)
@@ -223,11 +207,12 @@ elif st.session_state.stage == "game":
                     if st.button("f", key="gameover_t_f"):
                         st.write("哎呦喂" * 100)
         with col2:
-            if st.button("否", key="gameover_f"):
+            if st.button("f", key="gameover_f"):
                 st.write(st.session_state.bye_text)
+        st.write("重开")
         col5, col6 = st.columns(2)
         with col5:
-            if st.button("再来一次", key="gameover_a"):
+            if st.button("a", key="gameover_a"):
                 st.session_state.stage = "difficulty"
                 st.rerun()
         with col6:
@@ -259,6 +244,8 @@ elif st.session_state.stage == "game":
                 st.session_state.t += 3
             st.session_state.round_event = random.randint(0,7)
             st.session_state.round_step = "plant"
+            st.session_state.event_choice = None
+            st.session_state.event_choice_made = False
             st.rerun()
 
     if st.session_state.round_step == "plant":
@@ -281,58 +268,68 @@ elif st.session_state.stage == "game":
 
     if st.session_state.round_step == "event":
         event = st.session_state.round_event
-        describe_event(event)
 
-        if event == 6:
-            col_a1, col_a2 = st.columns(2)
-            with col_a1:
-                if st.button("同意", key="event6_yes"):
-                    st.session_state.event_choice_6_7 = "yes"
-            with col_a2:
-                if st.button("拒绝", key="event6_no"):
-                    st.session_state.event_choice_6_7 = "no"
+        if event == 0:
+            st.write("我帮你种个僵尸")
+        elif event == 1:
+            st.write("我帮你铲个植物")
+        elif event == 2:
+            st.write("我帮你给一个植物扣血")
+        elif event == 3:
+            st.write("我给僵尸加点血")
+        elif event == 4:
+            st.write("我帮你种个植物")
+        elif event == 5:
+            st.write("我多帮你种几个")
+        elif event == 6:
+            st.write("给我100阳光，我帮你铲几个植物")
         elif event == 7:
-            col_b1, col_b2 = st.columns(2)
-            with col_b1:
-                if st.button("同意", key="event7_yes"):
-                    st.session_state.event_choice_6_7 = "yes"
-            with col_b2:
-                if st.button("拒绝", key="event7_no"):
-                    st.session_state.event_choice_6_7 = "no"
+            st.write("你好呀，我是头牛的弟弟头羊，今天我来指导你")
+            st.write("给我200阳光，我给你400阳光")
 
-        st.write("---")
-        st.write("是否使用锤子？")
-        col_h1, col_h2 = st.columns(2)
-        use_hammer = False
-        with col_h1:
-            if st.button("使用", key="hammer_yes"):
-                use_hammer = True
-        with col_h2:
-            if st.button("不使用", key="hammer_no"):
-                use_hammer = False
-        if 'hammer_chosen' not in st.session_state:
-            st.session_state.hammer_chosen = None
+        if event in [6,7] and not st.session_state.event_choice_made:
+            col_agree1, col_agree2 = st.columns(2)
+            with col_agree1:
+                if st.button("同意", key="event_agree"):
+                    st.session_state.event_choice = "yes"
+                    st.session_state.event_choice_made = True
+                    st.rerun()
+            with col_agree2:
+                if st.button("拒绝", key="event_reject"):
+                    st.session_state.event_choice = "no"
+                    st.session_state.event_choice_made = True
+                    st.rerun()
+        else:
+            if event not in [6,7] and not st.session_state.event_choice_made:
+                st.session_state.event_choice_made = True
 
-        if use_hammer:
-            st.session_state.hammer_chosen = True
-            st.session_state.round_step = "battle"
-            apply_event(event, use_hammer=True)
-            st.rerun()
-        elif use_hammer is False:
-            st.session_state.hammer_chosen = False
-            if event in [6,7]:
-                if st.session_state.event_choice_6_7 == "yes":
+            if st.session_state.event_choice_made:
+                if st.session_state.c > 0:
+                    st.write("---")
+                    st.write("是否使用锤子？")
+                    col_hammer1, col_hammer2 = st.columns(2)
+                    with col_hammer1:
+                        if st.button("使用", key="hammer_yes"):
+                            st.session_state.c -= 1
+                            apply_event(event, use_hammer=True)
+                            st.session_state.round_step = "battle"
+                            st.rerun()
+                    with col_hammer2:
+                        if st.button("不使用", key="hammer_no"):
+                            apply_event(event, use_hammer=False)
+                            st.session_state.round_step = "battle"
+                            st.rerun()
+                else:
                     apply_event(event, use_hammer=False)
-            else:
-                apply_event(event, use_hammer=False)
-            st.session_state.round_step = "battle"
-            st.rerun()
+                    st.session_state.round_step = "battle"
+                    st.rerun()
 
     if st.session_state.round_step == "battle":
         battle()
         st.session_state.round_event = None
         st.session_state.round_step = None
-        st.session_state.event_choice_6_7 = None
+        st.session_state.event_choice = None
+        st.session_state.event_choice_made = False
         st.rerun()
 
     if st.button("返回主菜单", key="game_back"):
