@@ -6,6 +6,15 @@ import json
 
 st.set_page_config(page_title="植物大战僵尸", page_icon=None)
 
+st.markdown("""
+<style>
+    .stButton > button {
+        background-color: #add8e6 !important;
+        color: black !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 if "stage" not in st.session_state:
     st.session_state.stage = "menu"
     st.session_state.o = 0
@@ -19,15 +28,15 @@ if "stage" not in st.session_state:
     st.session_state.k = '11011111101010010'
     st.session_state.j = int(st.session_state.k, 2)
     st.session_state.l = str(st.session_state.j)
-    st.session_state.dev_input = ""
     st.session_state.dev_webhook = "https://oapi.dingtalk.com/robot/send?access_token=b05a06b5abe66c3a03d9f2c651c70b7a539176131c3030fa1309798aa4969dc3"
     st.session_state.dev_message = ""
     st.session_state.dev_at_all = False
     st.session_state.dev_count = 1
-    st.session_state.dev_sending = False
     st.session_state.bad_read = "你做阅读理解是只阅读不理解吗"
     st.session_state.exit_text = "怂了"
     st.session_state.bye_text = "跑路了兄弟们跑路了，跑就完了，慢点都得cos臊子"
+    st.session_state.round_event = None
+    st.session_state.round_step = None
 
 def send_dingtalk(webhook, message, at_all):
     headers = {'Content-Type': 'application/json;charset=utf-8'}
@@ -47,6 +56,8 @@ def start_game(difficulty):
         st.session_state.t = 0
         st.session_state.game_over = False
         st.session_state.win = False
+        st.session_state.round_event = None
+        st.session_state.round_step = None
         st.session_state.stage = "game"
     else:
         st.error(st.session_state.bad_read)
@@ -107,6 +118,7 @@ def process_event(choice):
                 else:
                     st.write("你被骗了")
                     st.session_state.o = max(0, st.session_state.o - 200)
+                st.session_state.round_step = "battle"
                 st.rerun()
         with col2:
             if st.button("拒绝", key=f"event7_no_{random.random()}"):
@@ -115,7 +127,9 @@ def process_event(choice):
                 else:
                     st.write("由不得你，你被骗了")
                     st.session_state.o = max(0, st.session_state.o - 200)
+                st.session_state.round_step = "battle"
                 st.rerun()
+    st.session_state.round_step = "battle"
 
 def check_win_loss():
     h = st.session_state.h
@@ -130,12 +144,17 @@ def check_win_loss():
     if h in lose_conditions and t >= lose_conditions[h]:
         st.session_state.game_over = True
 
+def battle():
+    if st.session_state.q > 0 and st.session_state.t >= 2:
+        st.session_state.q -= 0.5
+        st.session_state.t -= 2
+
 st.title("植物大战僵尸")
 
 if st.session_state.stage == "menu":
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("按下t键开始游戏", key="menu_start"):
+        if st.button("开始游戏", key="menu_start"):
             st.session_state.stage = "difficulty"
             st.rerun()
     with col2:
@@ -209,14 +228,13 @@ elif st.session_state.stage == "game":
         with col2:
             if st.button("f", key="gameover_f"):
                 st.write(st.session_state.bye_text)
-        st.write("冷知识，输入a重开游戏,其他任意键退出")
         col5, col6 = st.columns(2)
         with col5:
-            if st.button("a", key="gameover_a"):
+            if st.button("再来一次", key="gameover_a"):
                 st.session_state.stage = "difficulty"
                 st.rerun()
         with col6:
-            if st.button("其他", key="gameover_other"):
+            if st.button("退出", key="gameover_other"):
                 st.write("我跑路了")
                 st.session_state.stage = "exit"
                 st.rerun()
@@ -234,64 +252,102 @@ elif st.session_state.stage == "game":
         st.metric("锤子", st.session_state.c)
 
     st.write("---")
-    if st.button("下一回合", key="game_next"):
-        st.session_state.o += 50
-        if st.session_state.h in [1,2,3]:
-            st.session_state.t += 1
-        else:
-            st.session_state.t += 3
 
-        event = random.randint(0, 7)
-        if event == 6:
-            st.write("给我100阳光，我帮你铲几个植物")
-            if st.button("同意", key="event6_yes"):
-                if st.session_state.o >= 100:
+    if st.session_state.round_step is None:
+        if st.button("下一回合", key="game_next"):
+            st.session_state.o += 50
+            if st.session_state.h in [1,2,3]:
+                st.session_state.t += 1
+            else:
+                st.session_state.t += 3
+            st.session_state.round_event = random.randint(0,7)
+            st.session_state.round_step = "plant"
+            st.rerun()
+
+    if st.session_state.round_step == "plant":
+        if st.session_state.o >= 100:
+            st.write("是否种植植物？")
+            col_plant1, col_plant2 = st.columns(2)
+            with col_plant1:
+                if st.button("种植", key="plant_yes"):
                     st.session_state.o -= 100
-                    st.session_state.q = max(0, st.session_state.q - 1)
+                    st.session_state.q += 1
+                    st.session_state.round_step = "event"
                     st.rerun()
-                else:
-                    st.warning("阳光不足")
-            st.stop()
-        elif event == 7:
-            st.write("给我200阳光，我给你400阳光")
-            col_a, col_b = st.columns(2)
-            with col_a:
-                if st.button("同意", key="event7_yes"):
-                    if st.session_state.h == 1:
-                        st.session_state.o += 200
-                    else:
-                        st.write("你被骗了")
-                        st.session_state.o = max(0, st.session_state.o - 200)
+            with col_plant2:
+                if st.button("不种植", key="plant_no"):
+                    st.session_state.round_step = "event"
                     st.rerun()
-            with col_b:
-                if st.button("拒绝", key="event7_no"):
-                    if st.session_state.h not in [1,2,3]:
-                        st.write("由不得你，你被骗了")
-                        st.session_state.o = max(0, st.session_state.o - 200)
-                    st.rerun()
-            st.stop()
         else:
-            process_event(event)
+            st.session_state.round_step = "event"
+            st.rerun()
 
-        if st.session_state.q > 0 and st.session_state.t >= 2:
-            st.session_state.q -= 0.5
-            st.session_state.t -= 2
+    if st.session_state.round_step == "event":
+        event = st.session_state.round_event
+        if event in [6,7]:
+            if event == 6:
+                st.write("给我100阳光，我帮你铲几个植物")
+                if st.button("同意", key="event6_yes"):
+                    if st.session_state.o >= 100:
+                        st.session_state.o -= 100
+                        st.session_state.q = max(0, st.session_state.q - 1)
+                        st.session_state.round_step = "hammer"
+                        st.rerun()
+                    else:
+                        st.warning("阳光不足")
+                if st.button("拒绝", key="event6_no"):
+                    st.session_state.round_step = "hammer"
+                    st.rerun()
+            elif event == 7:
+                st.write("给我200阳光，我给你400阳光")
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if st.button("同意", key="event7_yes"):
+                        if st.session_state.h == 1:
+                            st.session_state.o += 200
+                        else:
+                            st.write("你被骗了")
+                            st.session_state.o = max(0, st.session_state.o - 200)
+                        st.session_state.round_step = "hammer"
+                        st.rerun()
+                with col_b:
+                    if st.button("拒绝", key="event7_no"):
+                        if st.session_state.h in [1,2,3]:
+                            pass
+                        else:
+                            st.write("由不得你，你被骗了")
+                            st.session_state.o = max(0, st.session_state.o - 200)
+                        st.session_state.round_step = "hammer"
+                        st.rerun()
+        else:
+            st.session_state.round_step = "hammer"
+            st.rerun()
 
+    if st.session_state.round_step == "hammer":
+        if st.session_state.c > 0:
+            st.write("是否使用锤子？")
+            col_hammer1, col_hammer2 = st.columns(2)
+            with col_hammer1:
+                if st.button("使用", key="hammer_yes"):
+                    st.session_state.c -= 1
+                    st.success("哎呦喂")
+                    st.session_state.round_step = "battle"
+                    st.rerun()
+            with col_hammer2:
+                if st.button("不使用", key="hammer_no"):
+                    process_event(st.session_state.round_event)
+                    st.session_state.round_step = "battle"
+                    st.rerun()
+        else:
+            process_event(st.session_state.round_event)
+            st.session_state.round_step = "battle"
+            st.rerun()
+
+    if st.session_state.round_step == "battle":
+        battle()
+        st.session_state.round_event = None
+        st.session_state.round_step = None
         st.rerun()
-
-    if st.session_state.o >= 100:
-        st.write("你当前有 100 个阳光")
-        if st.button("种植植物", key="game_plant"):
-            st.session_state.o -= 100
-            st.session_state.q += 1
-            st.rerun()
-
-    if st.session_state.c > 0:
-        st.write("你现在还剩", st.session_state.c, "个锤子")
-        if st.button("使用锤子", key="game_hammer"):
-            st.session_state.c -= 1
-            st.success("哎呦喂")
-            st.rerun()
 
     if st.button("返回主菜单", key="game_back"):
         st.session_state.stage = "menu"
